@@ -1,0 +1,5 @@
+<scenario>
+    <at t="6s">
+        <crash module="ap.lmac[1]"/>
+    </at>
+</scenario>
