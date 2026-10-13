@@ -15,7 +15,7 @@
 
 package frer_mlo.node;
 
-import inet.linklayer.ieee8021r.IIeee8021rLayer;
+import inet.linklayer.contract.IIeee8021rLayer;
 import mlo.node.MLOAccessPoint;
 
 module Ieee8021CbAccessPoint extends MLOAccessPoint

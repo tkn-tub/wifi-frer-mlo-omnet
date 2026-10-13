@@ -3,7 +3,7 @@
 	<name>frer-mlo</name>
 	<comment></comment>
 	<projects>
-		<project>inet4.5</project>
+		<project>inet-4.7.0</project>
 		<project>mlo</project>
 	</projects>
 	<buildSpec>

@@ -20,7 +20,7 @@
 #include "inet/linklayer/common/MacAddressTag_m.h"
 #include "inet/linklayer/common/VlanTag_m.h"
 #include "inet/linklayer/common/UserPriorityTag_m.h"
-#include "inet/linklayer/configurator/Ieee8021dInterfaceData.h"
+#include "inet/linklayer/ieee8021d/common/Ieee8021dInterfaceData.h"
 #include "inet/protocolelement/redundancy/StreamTag_m.h"
 #include "inet/common/SequenceNumberTag_m.h"
 #include "Ieee8021CbRelay.h"
@@ -160,7 +160,6 @@ void Ieee8021CbRelay::handleLowerPacket(Packet *incomingPacket)
         }
         delete incomingPacket;
     }
-    updateDisplayString();
 };
 
 }

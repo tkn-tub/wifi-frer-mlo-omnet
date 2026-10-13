@@ -18,7 +18,6 @@
 #include <omnetpp.h>
 #include <chrono>
 #include <fstream>
-#include <windows.h>
 #include <iomanip>
 
 #include "inet/linklayer/ieee8021r/Ieee8021rTagHeader_m.h"

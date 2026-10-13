@@ -1,31 +1,24 @@
 #
-# OMNeT++/OMNEST Makefile for mlo-frer
+# OMNeT++/OMNEST Makefile for $(LIB_PREFIX)mlo-frer
 #
 # This file was generated with the command:
-#  opp_makemake -f --deep -O out -KINET4_5_PROJ=../inet4.5 -KMLO_PROJ=../mlo -DINET_IMPORT -I. -I$$\(INET4_5_PROJ\)/src -I$$\(MLO_PROJ\) -L$$\(INET4_5_PROJ\)/src -L$$\(MLO_PROJ\) -lINET$$\(D\) -lmlo$$\(D\)
+#  opp_makemake --make-so -f --deep -O out -KINET_4_7_0_PROJ=../inet-4.7.0 -KMLO_PROJ=../mlo -DINET_IMPORT -I. -I$$\(INET_4_7_0_PROJ\)/src -I$$\(MLO_PROJ\) -L$$\(INET_4_7_0_PROJ\)/src -L$$\(MLO_PROJ\) -lINET$$\(D\) -lmlo$$\(D\)
 #
 
 # Name of target to be created (-o option)
 TARGET_DIR = .
-TARGET_NAME = mlo-frer$(D)
-TARGET = $(TARGET_NAME)$(EXE_SUFFIX)
-TARGET_IMPLIB = $(TARGET_NAME)$(IMPLIB_SUFFIX)
-TARGET_IMPDEF = $(TARGET_NAME)$(IMPDEF_SUFFIX)
+TARGET_NAME = $(LIB_PREFIX)mlo-frer$(D)
+TARGET = $(TARGET_NAME)$(SHARED_LIB_SUFFIX)
 TARGET_FILES = $(TARGET_DIR)/$(TARGET)
 
-# User interface (uncomment one) (-u option)
-USERIF_LIBS = $(ALL_ENV_LIBS) # that is, $(QTENV_LIBS) $(CMDENV_LIBS)
-#USERIF_LIBS = $(CMDENV_LIBS)
-#USERIF_LIBS = $(QTENV_LIBS)
-
 # C++ include paths (with -I)
-INCLUDE_PATH = -I. -I$(INET4_5_PROJ)/src -I$(MLO_PROJ)
+INCLUDE_PATH = -I. -I$(INET_4_7_0_PROJ)/src -I$(MLO_PROJ)
 
 # Additional object and library files to link with
 EXTRA_OBJS =
 
 # Additional libraries (-L, -l options)
-LIBS = $(LDFLAG_LIBPATH)$(INET4_5_PROJ)/src $(LDFLAG_LIBPATH)$(MLO_PROJ)  -lINET$(D) -lmlo$(D)
+LIBS = $(LDFLAG_LIBPATH)$(INET_4_7_0_PROJ)/src $(LDFLAG_LIBPATH)$(MLO_PROJ)  -lINET$(D) -lmlo$(D)
 
 # Output directory
 PROJECT_OUTPUT_DIR = out
@@ -42,7 +35,7 @@ MSGFILES =
 SMFILES =
 
 # Other makefile variables (-K)
-INET4_5_PROJ=../inet4.5
+INET_4_7_0_PROJ=../inet-4.7.0
 MLO_PROJ=../mlo
 
 #------------------------------------------------------------------------------
@@ -62,9 +55,9 @@ endif
 include $(CONFIGFILE)
 
 # Simulation kernel and user interface libraries
-OMNETPP_LIBS = $(OPPMAIN_LIB) $(USERIF_LIBS) $(KERNEL_LIBS) $(SYS_LIBS)
+OMNETPP_LIBS = -loppenvir$D $(KERNEL_LIBS) $(SYS_LIBS)
 ifneq ($(PLATFORM),win32)
-LIBS += -Wl,-rpath,$(abspath $(INET4_5_PROJ)/src) -Wl,-rpath,$(abspath $(MLO_PROJ))
+LIBS += -Wl,-rpath,$(abspath $(INET_4_7_0_PROJ)/src) -Wl,-rpath,$(abspath $(MLO_PROJ))
 endif
 
 COPTS = $(CFLAGS) $(IMPORT_DEFINES) -DINET_IMPORT $(INCLUDE_PATH) -I$(OMNETPP_INCL_DIR)
@@ -78,6 +71,24 @@ COPTS_FILE = $O/.last-copts
 ifneq ("$(COPTS)","$(shell cat $(COPTS_FILE) 2>/dev/null || echo '')")
   $(shell $(MKPATH) "$O")
   $(file >$(COPTS_FILE),$(COPTS))
+endif
+
+# On Windows, the target has additional file(s). An import lib and an optional debug symbol file is created too.
+ifeq ($(PLATFORM),win32)
+  TARGET_IMPLIB = $(TARGET_NAME)$(IMPLIB_SUFFIX)
+  TARGET_IMPDEF = $(TARGET_NAME)$(IMPDEF_SUFFIX)
+  TARGET_FILES+= $(TARGET_DIR)/$(TARGET_IMPLIB)
+  LDFLAGS+= $(LDFLAG_IMPLIB)$O/$(TARGET_IMPLIB)
+  OUT_TARGET_EXTRA_FILES = $O/$(TARGET_IMPLIB)
+  ifeq ($(TOOLCHAIN_NAME),clang-msabi)
+    ifeq ($(MODE),debug)
+      TARGET_FILES+=$(TARGET_DIR)/$(TARGET_NAME).pdb
+    endif
+  else
+    TARGET_FILES+= $(TARGET_DIR)/$(TARGET_IMPDEF)
+    LDFLAGS+= $(LDFLAG_IMPDEF)$O/$(TARGET_IMPDEF)
+    OUT_TARGET_EXTRA_FILES+= $O/$(TARGET_IMPDEF)
+  endif
 endif
 
 #------------------------------------------------------------------------------
@@ -98,10 +109,14 @@ ifeq ($(TOOLCHAIN_NAME),clang-msabi)
 $O/$(TARGET_NAME).pdb: $O/$(TARGET)
 endif
 
-$O/$(TARGET): $(OBJS)  $(wildcard $(EXTRA_OBJS)) Makefile $(CONFIGFILE)
+$O/$(TARGET) $(OUT_TARGET_EXTRA_FILES) &: $(OBJS)  $(wildcard $(EXTRA_OBJS)) Makefile $(CONFIGFILE)
 	@$(MKPATH) $O
-	@echo Creating executable: $@
-	$(Q)$(CXX) $(LDFLAGS) -o $O/$(TARGET) $(OBJS) $(EXTRA_OBJS) $(AS_NEEDED_OFF) $(WHOLE_ARCHIVE_ON) $(LIBS) $(WHOLE_ARCHIVE_OFF) $(OMNETPP_LIBS)
+	@echo Creating shared library: $@
+	$(Q)$(SHLIB_LD) -o $O/$(TARGET) $(OBJS) $(EXTRA_OBJS) $(AS_NEEDED_OFF) $(WHOLE_ARCHIVE_ON) $(LIBS) $(WHOLE_ARCHIVE_OFF) $(OMNETPP_LIBS) $(LDFLAGS)
+	$(Q)$(SHLIB_POSTPROCESS) $O/$(TARGET)
+ifeq ($(PLATFORM),win32)
+	$(Q)llvm-ar d $O/$(TARGET_IMPLIB) $(TARGET) # WORKAROUND: throw away the first file from the archive to make the LLD generated import lib valid
+endif
 
 .PHONY: all clean cleanall depend msgheaders smheaders
 
@@ -116,11 +131,11 @@ $O/%.o: %.cc $(COPTS_FILE) | msgheaders smheaders
 
 %_m.cc %_m.h: %.msg
 	$(qecho) MSGC: $<
-	$(Q)$(MSGC) -s _m.cc -MD -MP -MF $O/$(basename $<)_m.h.d $(MSGCOPTS) $?
+	$(Q)$(MSGC) -s _m.cc -MD -MP -MF $O/$(basename $<)_m.h.d $(MSGCOPTS) $<
 
 %_sm.cc %_sm.h: %.sm
 	$(qecho) SMC: $<
-	$(Q)$(SMC) -c++ -suffix cc $(SMCOPTS) $?
+	$(Q)$(SMC) -c++ -suffix cc $(SMCOPTS) $<
 
 msgheaders: $(MSGFILES:.msg=_m.h)
 

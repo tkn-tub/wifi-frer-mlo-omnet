@@ -17,7 +17,7 @@ package frer_mlo.lmac.portal;
 
 import inet.linklayer.ieee80211.portal.Ieee80211Portal;
 import inet.linklayer.ieee80211.llc.IIeee80211Llc;
-import inet.linklayer.ieee8022.IIeee8022Llc;
+import inet.linklayer.contract.IIeee8022Llc;
 
 simple Ieee8021CbPortal extends Ieee80211Portal like IIeee8022Llc, IIeee80211Llc
 {

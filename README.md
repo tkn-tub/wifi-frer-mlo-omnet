@@ -8,8 +8,8 @@ An OMNeT++ simulation framework implementing **IEEE 802.1CB Frame Replication an
 
 | Dependency | Version |
 |---|---|
-| [OMNeT++](https://omnetpp.org/) | **6.0.3** |
-| [INET Framework](https://inet.omnetpp.org/) | **4.5.2** |
+| [OMNeT++](https://omnetpp.org/) | **6.4.0** |
+| [INET Framework](https://inet.omnetpp.org/) | **4.7.0** |
 | [wifi-mlo-omnet](https://github.com/tkn-tub/wifi-mlo-omnet) | (see below) |
 
 ### MLO Base Framework
@@ -24,7 +24,7 @@ The `Ieee8021CbStation` and `Ieee8021CbAccessPoint` nodes extend `MLOStation` an
 
 This project is built using the **OMNeT++ IDE** (Eclipse-based):
 
-1. Place this project folder, `inet4.5/`, and `wifi-mlo-omnet/` side by side in your OMNeT++ workspace.
+1. Place this project folder, `inet-4.7.0/`, and `wifi-mlo-omnet/` (as `mlo/`) side by side in your OMNeT++ workspace.
 2. Import all three projects into the workspace.
 3. Set project Makemake properties for this project:
    - Root: **build** mode (makemake), source location
@@ -32,6 +32,14 @@ This project is built using the **OMNeT++ IDE** (Eclipse-based):
 4. Add `wifi-mlo-omnet` as a referenced project under **Project > Properties > Project References**.
 5. The MLO project should be set to **library** (static or shared) in its Makemake settings.
 6. Build via **Project > Build** in the OMNeT++ IDE.
+
+Alternatively, build and run from the command line. The project is built as a shared library (`libmlo-frer`) on top of `libINET` and `libmlo`:
+
+```sh
+make -f makemakefiles      # regenerates the Makefile (expects ../inet-4.7.0 and ../mlo)
+make MODE=release
+simulations/run -u Cmdenv -c FRER omnetpp.ini
+```
 
 ---
 
@@ -97,7 +105,7 @@ Application (UdpBasicApp / UdpSink)
 
 ## Simulation Scenarios
 
-Scenarios are defined in `simulations/omnetpp.ini`. All configurations share a common `[General]` base: two MLO STAs and one MLO AP operating over 2.4 GHz (52 Mbit/s) and 5 GHz (130 Mbit/s) links, scalar radio propagation with log-normal shadowing, 15 s simulation time, and 10 repetitions.
+Scenarios are defined in `simulations/omnetpp.ini`. All configurations share a common `[General]` base: two MLO STAs and one MLO AP operating over 2.4 GHz (52 Mbit/s) and 5 GHz (130 Mbit/s) links, scalar radio propagation with log-normal shadowing (one radio medium per band: `radioMedium` for 2.4 GHz and `radioMedium5GHz` for 5 GHz), 15 s simulation time, and 10 repetitions.
 
 Three MLO operating modes are compared across scenarios:
 
@@ -113,7 +121,8 @@ Three MLO operating modes are compared across scenarios:
 |---|---|---|
 | `SLO` | `BaseNetwork` | Baseline: UDP traffic over a single link (default 2.4 GHz). |
 | `LinkAggregation` | `BaseNetwork` | MLO without FRER: frames distributed randomly across both links. |
-| `FRER` | `BaseNetwork` | Full FRER: each packet replicated over both links, duplicate eliminated at receiver. Failure scenarios (Scenarios 1–4 in the paper) are run under this config by enabling the `ScenarioManager` script (`failure.xml`). |
+| `FRER` | `BaseNetwork` | Full FRER: each packet replicated over both links, duplicate eliminated at receiver. Failure scenarios (Scenarios 1–4 in the paper) are run with the `Failure` config. |
+| `Failure` | `BaseNetwork` | `FRER` plus the `ScenarioManager` script `failure.xml` (crashes the 5 GHz link of the AP at t = 6 s). |
 | `Congestion` | `MixedNetwork` | FRER flow coexists with background SLO traffic from additional `MLOStation` nodes. Network size is swept from 8 to 24 STAs. |
 | `Mobility` | `MixedNetwork` | FRER under mobility: all nodes follow `RandomWaypointMobility` at 7–9 m/s across a 450 × 450 m area. |
 
