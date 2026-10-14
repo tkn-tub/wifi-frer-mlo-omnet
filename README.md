@@ -75,10 +75,12 @@ Application (UdpBasicApp / UdpSink)
 #### Relay (`src/relay/`)
 
 - **`Ieee8021CbRelay`** — Extends INET's `Ieee8021dRelay`. Overrides lower-packet handling to preserve FRER-specific tags (`StreamInd`, `SequenceNumberInd`) when forwarding received frames, so that the U-MAC at the AP can identify and steer replicated streams correctly on the downlink.
+  - *Unicast forwarding as in MLO.* A unicast frame is forwarded on the interface it arrived on (`InterfaceInd`), as `MLOIeee8021dRelay` of the MLO framework does, and the U-MAC decides on the links. INET's 802.1D forwarding discards a frame whose destination has been learned on the interface the frame arrived on. With MLO, the links of a station share one MAC address, so its address is learned on whichever link it has sent last: as soon as the receiver sends any traffic through the AP (e.g. FRER in both directions), almost all frames were discarded, after the merger had already eliminated their other copy.
 
 #### L-MAC Portal (`src/lmac/portal/`)
 
 - **`Ieee8021CbPortal`** — Extends INET's `Ieee80211Portal`. Overrides decapsulation to bridge the EPD/LPD header mismatch: the default WiFi LLC uses LPD-style framing, but FRER frames carry an EtherType-based R-TAG (EPD). The portal re-inserts the R-TAG into the reconstructed Ethernet frame and sets the required dispatch protocol tag so packets traverse the U-MAC correctly on the receive path.
+  - *TID to PCP.* The portal copies the 802.11 user priority (TID) of a received frame into the 802.1Q PCP (`PcpInd`), which carries the same 802.1D priority. INET's stream decoder matches the priority only as PCP (mapping key `pcp`), so the AP can identify streams per priority, e.g. one stream per access category. Packet filter expressions cannot be used in the decoder of the AP, as the R-TAG is in front of the reconstructed Ethernet header, which INET's packet dissector cannot parse.
 
 #### Nodes (`src/node/`)
 
@@ -94,8 +96,8 @@ Application (UdpBasicApp / UdpSink)
 | `umac.forwardingTable` | U-MAC | Maps member stream names to outgoing interface names. E.g. `{streamA1: "lmac0", streamA2: "lmac1"}` routes each replica to a different link. |
 | `ieee8021r.policy.streamIdentifier.identifier.mapping` | `ieee8021r` | Identifies application flows as named streams and enables sequence numbering. Supports flexible packet filter expressions (UDP/TCP ports, IP fields). |
 | `ieee8021r.policy.streamRelay.splitter.mapping` | `ieee8021r` | Splits a stream into member streams (one per link). E.g. `{streamA: ["streamA1", "streamA2"]}`. |
-| `ieee8021r.policy.streamCoder.decoder.mapping` | `ieee8021r` | Identifies member streams on the receive side by MAC address and receiving interface (interface-based matching is critical for MLO). |
-| `ieee8021r.policy.streamRelay.merger.mapping` | `ieee8021r` | Merges member streams and eliminates duplicates (VRA-like SRF). E.g. `{streamA1: "streamA", streamA2: "streamA"}`. Set to empty target at the listener to remove R-TAGs. |
+| `ieee8021r.policy.streamCoder.decoder.mapping` | `ieee8021r` | Identifies member streams on the receive side by MAC address (`source`, `destination`) and receiving interface (interface-based matching is critical for MLO). At the AP, the priority can be matched with `pcp` (see `Ieee8021CbPortal`). Matching the `source` at a receiver needs the MLO framework version that puts the source address into Address 3 of the frames from the AP, as 802.11 does. |
+| `ieee8021r.policy.streamRelay.merger.mapping` | `ieee8021r` | Merges member streams and eliminates duplicates (VRA-like SRF). E.g. `{streamA1: "streamA", streamA2: "streamA"}`. Set to empty target at the listener to remove R-TAGs. The merger keeps the sequence numbers it has seen per *output* stream: with several streams at one node, each needs its own output (not `""` for all), otherwise streams numbered independently eliminate each other's packets. |
 | `ieee8021r.policy.streamRelay.merger.bufferSize` | `ieee8021r` | VRA sequence window size. Must be set large (≥ 500; 10000 used in experiments) due to sequence number divergence from asymmetric link speeds and wireless retransmissions. |
 | `umac.defaultInterface` | U-MAC | Default outgoing interface for non-FRER (SLO) packets. |
 

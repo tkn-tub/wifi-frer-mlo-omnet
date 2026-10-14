@@ -17,6 +17,8 @@
 #include "inet/linklayer/common/EtherType_m.h"
 #include "inet/linklayer/common/FcsMode_m.h"
 #include "inet/linklayer/common/MacAddressTag_m.h"
+#include "inet/linklayer/common/PcpTag_m.h"
+#include "inet/linklayer/common/UserPriorityTag_m.h"
 #include "Ieee8021CbPortal.h"
 
 #ifdef INET_WITH_ETHERNET
@@ -76,6 +78,12 @@ void Ieee8021CbPortal::decapsulate(Packet *packet) {
     if (rTagHeader != nullptr) {
         packet->insertAtFront(rTagHeader);
     }
+
+    // MODIFIED: The priority of the frame (802.11 TID) as 802.1Q PCP, which carries the same 802.1D user priority, so that
+    // the 802.1CB stream decoder can identify the streams of a priority by it (mapping key "pcp"). Wi-Fi frames have no
+    // VLAN tag, and packet filter expressions cannot be used here, as the R-TAG is in front of the Ethernet header.
+    if (auto userPriorityInd = packet->findTag<UserPriorityInd>())
+        packet->addTagIfAbsent<PcpInd>()->setPcp(userPriorityInd->getUserPriority());
 
     // MODIFIED: This protocol tag is required to pass the packet through U-MAC.
     packet->addTagIfAbsent<DispatchProtocolReq>()->setProtocol(ieee80211be);
