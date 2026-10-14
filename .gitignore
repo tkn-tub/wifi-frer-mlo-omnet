@@ -19,6 +19,8 @@
 *.txt
 *.o
 *.d
+/.claude/*
 CLAUDE.md
 TODO.md
 
+sync-to-repo.sh

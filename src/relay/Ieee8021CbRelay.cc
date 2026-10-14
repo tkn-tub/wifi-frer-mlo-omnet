@@ -129,6 +129,14 @@ void Ieee8021CbRelay::handleLowerPacket(Packet *incomingPacket)
                 delete outgoingPacket;
             }
         }
+        else if (incomingInterfaceId) {
+            // IMPORTANT: As MLOIeee8021dRelay of the MLO project: a unicast frame is forwarded on the interface it has
+            // arrived on (InterfaceInd), and the U-MAC decides on the links. The 802.1D forwarding below discards a frame
+            // whose destination has been learned on the interface the frame has arrived on, which happens all the time
+            // with MLO: the links of a station have the same MAC address, so its address is learned on whichever link it
+            // has sent last, as soon as the receiver sends anything through the access point.
+            sendPacket(outgoingPacket, destinationAddress, incomingInterface);
+        }
         else {
             auto outgoingInterfaceId = macForwardingTable->getUnicastAddressForwardingInterface(destinationAddress);
 
